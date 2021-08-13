@@ -15,11 +15,13 @@ const exec = util.promisify(cp.exec);
 const GLOBAL_LIB_PATH = '/usr/local/lib/node_modules/dev-server';
 const LOCAL_LIB_PATH = 'node_modules/dev-server';
 
+const argv = process.argv.slice(2);
+
 main();
 
-async function main() {	
+async function main() {
 	let mime_types;
-	
+
 	try {
 		mime_types = await fs.promises.readFile(ph.join(GLOBAL_LIB_PATH, 'mime-types.json'), 'utf-8').then(JSON.parse)
 	} catch(e) {
@@ -29,15 +31,15 @@ async function main() {
 			console.log(e);
 			console.log('Can\'t read or parse mime-types.json');
 			process.exit(1);
-		}		
+		}
 	}
 
-	try {		
+	try {
 		await exec('mkdir -p .https');
 		await exec('openssl req -newkey rsa:4096 -new -nodes -x509 -days 3650 -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN=www.example.com" -keyout .https/key.pem -out .https/cert.pem');
 	} catch(e) {
 		console.log(e);
-	}	
+	}
 
 	const server = http2.createSecureServer({
 		key : fs.readFileSync('.https/key.pem'),
@@ -48,7 +50,7 @@ async function main() {
 
 	server.on('stream', (stream, headers) => {
 
-		let path        = headers[':path'],                 // Get the path			
+		let path        = headers[':path'],                 // Get the path
 			method      = headers[':method'].toLowerCase(); // Get the HTTP method
 
 		if (method !== 'get')
@@ -58,8 +60,8 @@ async function main() {
 			});
 			stream.end('Not found');
 		}
-		
-		path = parsePath(path);
+
+		path = parsePath(path, argv[0]);
 
 		fs.promises.readFile(ph.format(path), 'utf-8')
 			.then(file => {
@@ -68,8 +70,8 @@ async function main() {
 
 				// stream is a Duplex
 				stream.respond({
-				'content-type': contentType,
-				':status'     : 200
+					'content-type': contentType,
+					':status'     : 200
 				});
 				stream.end(file);
 
@@ -98,10 +100,10 @@ async function main() {
 				openCommand = 'start chrome';
 				break;
 			}
-			
+
 			exec(openCommand + ' ' + config.protocol + '://' + config.hostname + ':' + config.port);
-		} catch(e) {}		
+		} catch(e) {}
 		console.log('Server listening on ' + config.hostname + ':' + config.port);
 	})
-			
+
 }

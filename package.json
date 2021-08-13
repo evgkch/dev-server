@@ -1,7 +1,7 @@
 {
   "name": "dev-server",
   "version": "0.0.1",
-  "description": "Simple static dev server",
+  "description": "Static development server for web applications",
   "main": "index.js",
   "type": "module",
   "bin": {
