@@ -21,6 +21,7 @@ main();
 
 async function main() {
 	let mime_types;
+	let port = config.port;
 
 	try {
 		mime_types = await fs.promises.readFile(ph.join(GLOBAL_LIB_PATH, 'mime-types.json'), 'utf-8').then(JSON.parse)
@@ -46,7 +47,37 @@ async function main() {
 		cert: fs.readFileSync('.https/cert.pem')
 	});
 
-	server.on('error', err => console.log(err))
+	async function listen(port) {
+		server.listen(port, config.hostname, () => {
+			try {
+				let openCommand = '';
+				switch (process.platform)
+				{
+				case 'darwin':
+					openCommand = 'open -a "Google Chrome"';
+					break;
+				default:
+					openCommand = 'start chrome';
+					break;
+				}
+	
+				exec(openCommand + ' ' + config.protocol + '://' + config.hostname + ':' + config.port);
+			} catch(e) {}
+			console.log('Server listening on ' + config.hostname + ':' + config.port);
+		})
+	}
+
+	server.on('error', err => {
+		if (err.code === 'EADDRINUSE')
+		{	
+			port += 1;
+			listen(port);
+		}
+		else
+		{
+			console.log(err);
+		}
+	});
 
 	server.on('stream', (stream, headers) => {
 
@@ -88,22 +119,6 @@ async function main() {
 			});
 	})
 
-	server.listen(config.port, config.hostname, () => {
-		try {
-			let openCommand = '';
-			switch (process.platform)
-			{
-			case 'darwin':
-				openCommand = 'open -a "Google Chrome"';
-				break;
-			default:
-				openCommand = 'start chrome';
-				break;
-			}
-
-			exec(openCommand + ' ' + config.protocol + '://' + config.hostname + ':' + config.port);
-		} catch(e) {}
-		console.log('Server listening on ' + config.hostname + ':' + config.port);
-	})
+	listen(port);
 
 }
