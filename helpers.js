@@ -23,8 +23,8 @@ const parsePath = (p, prefix = '') => {
 			p.name = 'index';
 		}
 		else
-		{
-			p.dir += p.name;
+		{			
+			p.dir += `/${p.name}`;
 			p.ext = '.js';
 			p.name = 'index';
 		}
