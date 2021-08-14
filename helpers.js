@@ -1,6 +1,17 @@
 import path from 'path';
 
-const parsePath = (p, distFolder = '') => {
+const waitAny = async (f, ...fs) => {
+	try {
+		return await f();		
+	} catch(e) {		
+		if (fs.length > 0)
+			return waitAny(...fs);
+		else
+			return Promise.reject(e);
+	}
+}
+
+const parsePath = (p, prefix = '') => {
 
 	p = path.parse(p);
 
@@ -20,10 +31,10 @@ const parsePath = (p, distFolder = '') => {
 		p.base = p.name + p.ext;
 	}
 
-	p = path.join(path.resolve(), distFolder, path.format(p));
+	p = path.join(path.resolve(), prefix, path.format(p));
 	p = path.parse(p);
 
 	return p;
 };
 
-export { parsePath };
+export { waitAny, parsePath };
