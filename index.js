@@ -7,7 +7,7 @@ import process from 'process';
 import util from 'util';
 import ph from 'path';
 
-import { waitAny, parsePath } from './helpers.js';
+import { waitAny, parsePath, replacePath } from './helpers.js';
 
 import config from './config.js';
 
@@ -56,20 +56,11 @@ async function main() {
 			stream.respond({ ':status': 500 });
 			stream.end('Not found');
 		}
-
-		let resolved = false;
-		for (let pathToResolve in paths)
-		{
-			if (path.match(pathToResolve))
-			{
-				path.replace(pathToResolve, paths[pathToResolve]);
-				path = ph.resolve(path);
-				resolved = true;
-				continue;
-			}
-		}
-
-		if (!resolved)
+		
+		const special_path = replacePath(path, paths);
+		if (special_path)
+			path = parsePath(special_path);
+		else
 			path = parsePath(path, path_to_dist_folder);
 
 		fs.promises.readFile(ph.format(path), 'utf-8')
@@ -108,7 +99,7 @@ async function main() {
 
 async function parseDevConfig() {
 	try {
-		const dsconfig = fs.promises.readFile('./dsconfig.json', 'utf-8');
+		const dsconfig = JSON.parse(await fs.promises.readFile('./dsconfig.json', 'utf-8'));		
 		if (dsconfig.hostname)
 			config.hostname = dsconfig.hostname;
 		if (dsconfig.paths)

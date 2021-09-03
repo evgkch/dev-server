@@ -11,6 +11,18 @@ const waitAny = async (f, ...fs) => {
 	}
 }
 
+const replacePath = (p, paths) => {
+	for (let pathToReplace in paths)
+	{
+		if (p.match(pathToReplace))
+		{				
+			p = p.replace(pathToReplace, paths[pathToReplace]);			
+			return p;
+		}
+	}
+	return;
+}
+
 const parsePath = (p, prefix = '') => {
 
 	p = path.parse(p);
@@ -37,4 +49,4 @@ const parsePath = (p, prefix = '') => {
 	return p;
 };
 
-export { waitAny, parsePath };
+export { waitAny, parsePath, replacePath };
