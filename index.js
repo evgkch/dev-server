@@ -27,6 +27,9 @@ const methods = {
 	GET: 'get'
 }
 
+// Paths to resolve
+const paths = {};
+
 let cx;
 
 async function main() {
@@ -40,6 +43,9 @@ async function main() {
 		cert: fs.readFileSync('.https/cert.pem')
 	});
 
+	await parseDevConfig();
+	// fs.watch(`${path_to_dist_folder}`, { recursive: true }, console.log);
+
 	server.on('stream', (stream, headers) => {
 
 		let path = headers[':path'],
@@ -51,7 +57,20 @@ async function main() {
 			stream.end('Not found');
 		}
 
-		path = parsePath(path, path_to_dist_folder);
+		let resolved = false;
+		for (let pathToResolve in paths)
+		{
+			if (path.match(pathToResolve))
+			{
+				path.replace(pathToResolve, paths[pathToResolve]);
+				path = ph.resolve(path);
+				resolved = true;
+				continue;
+			}
+		}
+
+		if (!resolved)
+			path = parsePath(path, path_to_dist_folder);
 
 		fs.promises.readFile(ph.format(path), 'utf-8')
 			.then(file => {
@@ -68,6 +87,7 @@ async function main() {
 				stream.respond({ ':status': 404	});
 				stream.end('Not found');
 			});
+							
 	});
 
 	server.on('error', err => {
@@ -84,6 +104,16 @@ async function main() {
 
 	listen(server, config.hostname, config.port);
 
+}
+
+async function parseDevConfig() {
+	try {
+		const dsconfig = fs.promises.readFile('./dsconfig.json', 'utf-8');
+		if (dsconfig.hostname)
+			config.hostname = dsconfig.hostname;
+		if (dsconfig.paths)
+			Object.assign(paths, dsconfig.paths);
+	} catch(e) {}
 }
 
 async function getMimeTypes() {
@@ -122,6 +152,6 @@ function listen(server, hostname, port) {
 
 async function openBrowser() {
 	try {	
-		await exec(`open -a "Google Chrome" ${config.protocol}://${config.hostname}:${config.port}`);
+		const res = await exec(`open -a "Google Chrome" ${config.protocol}://${config.hostname}:${config.port}`);		
 	} catch(e) {}
 }
