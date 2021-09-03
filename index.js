@@ -103,7 +103,7 @@ async function parseDevConfig() {
 		if (dsconfig.hostname)
 			config.hostname = dsconfig.hostname;
 		if (dsconfig.paths)
-			Object.assign(paths, dsconfig.paths);
+			Object.assign(paths, dsconfig.paths);			
 	} catch(e) {}
 }
 
@@ -143,6 +143,6 @@ function listen(server, hostname, port) {
 
 async function openBrowser() {
 	try {	
-		const res = await exec(`open -a "Google Chrome" ${config.protocol}://${config.hostname}:${config.port}`);		
+		await exec(`open -a "Google Chrome" ${config.protocol}://${config.hostname}:${config.port}`);		
 	} catch(e) {}
 }
