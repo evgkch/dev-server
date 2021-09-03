@@ -43,7 +43,7 @@ async function main() {
 		cert: fs.readFileSync('.https/cert.pem')
 	});
 
-	await parseDevConfig();
+	await applyDevServerConfig();
 	// fs.watch(`${path_to_dist_folder}`, { recursive: true }, console.log);
 
 	server.on('stream', (stream, headers) => {
@@ -97,13 +97,13 @@ async function main() {
 
 }
 
-async function parseDevConfig() {
+async function applyDevServerConfig() {
 	try {
-		const dsconfig = JSON.parse(await fs.promises.readFile('./dsconfig.json', 'utf-8'));		
-		if (dsconfig.hostname)
-			config.hostname = dsconfig.hostname;
-		if (dsconfig.paths)
-			Object.assign(paths, dsconfig.paths);			
+		const dev_server_config = JSON.parse(await fs.promises.readFile('./devserver.config.json', 'utf-8'));		
+		if (dev_server_config.hostname)
+			config.hostname = dev_server_config.hostname;
+		if (dev_server_config.paths)
+			Object.assign(paths, dev_server_config.paths);			
 	} catch(e) {}
 }
 
