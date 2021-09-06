@@ -7,9 +7,6 @@
   "bin": {
     "dev-server": "index.js"
   },
-  "os": [
-    "!win32"
-  ],
   "author": "Evgeny Kucherenko <evg.kch@gmail.com>",
   "license": "MIT"
 }
