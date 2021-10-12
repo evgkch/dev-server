@@ -1,4 +1,4 @@
-#!/usr/bin/env node --experimental-modules
+#!/usr/bin/env -S node --experimental-modules
 
 import http2 from 'http2';
 import fs from 'fs';
