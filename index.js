@@ -80,8 +80,9 @@ const Router = ({ userConfig, fileLoader, fileWatcher }) => {
 
     const resolve = (pathToFile) => {
         if (pathToFile in config.resolve)
-            pathToFile = config.resolve[pathToFile];
-        return path.join(config.dist, pathToFile);
+            return path.join(process.pwd(), config.resolve[pathToFile]);
+        else
+            return path.join(config.dist, pathToFile);
     };
 
     const loadFile = async (stream, headers) => {
