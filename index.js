@@ -2,20 +2,12 @@
 
 import http2 from 'http2';
 import fs from 'fs';
-import cp from 'child_process';
+import url from 'url';
 import process from 'process';
-import util from 'util';
-import ph from 'path';
+import path from 'path';
 
-import { waitAny, parsePath, replacePath } from './helpers.js';
-
-import config from './config.js';
-
-const exec = util.promisify(cp.exec);
-
-const [path_to_dist_folder] = process.argv.slice(2);
-
-main();
+const __filename = url.fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const colors = {
 	Error: '\x1b[41m%s\x1b[0m',
@@ -23,126 +15,181 @@ const colors = {
 	Ok: '\x1b[32m%s\x1b[0m'
 };
 
-const methods = {
-	GET: 'get'
-}
+JSON.fetch = async function(filePath) {
+    return JSON.parse(await fs.promises.readFile(filePath, 'utf-8'))
+};
 
-// Paths to resolve
-const paths = {};
+const serverConfig = {
+    hostname: '127.0.0.1',
+    port: 3000
+};
 
-let cx;
+const userConfig = {
+    dist: process.cwd(),
+    resolve: {}
+};
 
-async function main() {
-	let mime_types;
-	
-	mime_types = await getMimeTypes();
-	await generateCertificates();	
+const FileLoader = async () => {
 
-	const server = http2.createSecureServer({
-		key: fs.readFileSync('.https/key.pem'),
-		cert: fs.readFileSync('.https/cert.pem')
-	});
+    const types = {};
 
-	await applyDSConfig();
-	// fs.watch(`${path_to_dist_folder}`, { recursive: true }, console.log);
+    try {
+        Object.assign(types, await JSON.fetch(`${__dirname}/files/mime-types.json`));
+    } catch(e) {
+        console.error('error: Can\'t read or parse "mime-types.json"', e);
+        process.exit(1);
+    }
 
-	server.on('stream', (stream, headers) => {
+    const getContentType = (pathToFile) => {
+        const ext = path.extname(pathToFile);
+        return types[ext];
+    };
 
-		let path = headers[':path'],
-			method = headers[':method'].toLowerCase();
+    const fetch = (pathToFile) => {
+        return fs.promises.readFile(pathToFile, 'utf-8');
+    };
 
-		if (method !== methods.GET)
-		{
-			stream.respond({ ':status': 500 });
-			stream.end('Not found');
-		}
-		
-		const special_path = replacePath(path, paths);
-		if (special_path)
-			path = parsePath(special_path);
-		else
-			path = parsePath(path, path_to_dist_folder);
+    return { getContentType, fetch };
+};
 
-		fs.promises.readFile(ph.format(path), 'utf-8')
-			.then(file => {
-				const contentType = mime_types[path.ext];
-				// stream is a Duplex
-				stream.respond({
-					'content-type': contentType,
-					':status': 200
-				});
-				stream.end(file);
-			})
-			.catch(err => {
-				console.log(colors.Message, `Not found ${err.path}`);
-				stream.respond({ ':status': 404	});
-				stream.end('Not found');
-			});
-							
-	});
+const FileWatcher = () => {
+    let watcher;
 
-	server.on('error', err => {
+    const close = () => {
+        if (watcher)
+            watcher.close();
+        watcher = undefined;
+    };
+
+    const watch = (dist, cb) => {
+        close();
+        watcher = fs.watch(dist, { recursive: true }, cb);
+    };
+
+    return { watch, close };
+};
+
+const Router = ({ userConfig, fileLoader, fileWatcher }) => {
+
+    const config = {
+        dist: userConfig.dist,
+        resolve: Object.assign({
+            '/': '/index.html'
+        }, userConfig.resolve)
+    };
+
+    const resolve = (pathToFile) => {
+        if (pathToFile in config.resolve)
+            pathToFile = config.resolve[pathToFile];
+        return path.join(config.dist, pathToFile);
+    };
+
+    const loadFile = async (stream, headers) => {
+        const path = resolve(headers[':path']);
+        try {
+            const file = await fileLoader.fetch(path);
+            stream.respond({
+                'content-type': fileLoader.getContentType(path),
+                ':status': 200
+            });
+            stream.end(file);
+        } catch(e) {
+            console.log(colors.Message, `Not found ${path}`, e);
+            stream.respond({ ':status': 404	});
+            stream.end('Not found');
+        }
+    };
+
+    const watchFolder = (stream) => {
+        stream.respond({
+            'content-type': 'text/event-stream',
+            ':status': 200
+        });
+        fileWatcher.watch(config.dist, () => {
+            stream.write('data: :refresh\n\n');
+        });
+    };
+
+    const route = async (stream, headers) => {
+        if (headers[':path'] === '/watch')
+            watchFolder(stream, headers);
+        else
+            await loadFile(stream, headers);
+    };
+
+    return { route };
+};
+
+const DevServer = ({ serverConfig, router }) => {
+
+    const CERT_FOLDER = 'private';
+
+    const server = http2.createSecureServer({
+        key: fs.readFileSync(`${__dirname}/${CERT_FOLDER}/key.pem`),
+        cert: fs.readFileSync(`${__dirname}/${CERT_FOLDER}/cert.pem`)
+    });
+
+    const run = () => {
+        server.listen(serverConfig.port, serverConfig.hostname, () => {
+            console.log(colors.Ok, `Server listening on ${serverConfig.hostname}:${serverConfig.port}`);
+        });
+    };
+
+    server.on('stream', router.route);
+    server.on('error', async err => {
 		switch (err.code)
 		{
 		case 'EADDRINUSE':
-			config.port += 1;
-			listen(server, config.hostname, config.port);
-			break;
+			server.close();
+            serverConfig.port++;
+            return DevServer(router).run();
 		default:
 			console.log(colors.Message, err);
-		}				
-	});	
+		}
+	});
 
-	listen(server, config.hostname, config.port);
+    return { run };
+};
+
+const upgradeUserConfig = async () => {
+    // Getting args
+    const [dist, ...args] = process.argv.slice(2);
+
+    // Try to read and parse dev-server.json to update userConfig
+    try {
+        const config = await JSON.fetch(path.join(userConfig.dist, 'dev-server.json'));
+        userConfig.dist = path.join(userConfig.dist, dist || config.dist || '');
+        if (config.resolve)
+            Object.assign(userConfig.resolve, config.resolve);
+    } catch(e) {}
+};
+
+const injectSupervisor = () => {
+    // If dist is the argument it has max priority to be set
+    if (!fs.existsSync(path.join(userConfig.dist, 'supervisor.js')))
+        fs.copyFile(`${__dirname}/files/supervisor.js`, path.join(userConfig.dist, 'supervisor.js'), (err) => {
+            if (!err)
+                console.log(colors.Message, `message:\n    "supervisor.js" created at "${userConfig.dist}".\n    Put it in html as "<script src="/supervisor.js"></script>" to activate the hot reload`);
+            else
+                console.warn(colors.Message, `message:\n    Can\'t create "supervisor.js".\n    Hot reload will not work`);
+        });
+    else
+        console.log(colors.Message, `message:\n    "supervisor.js" already created at "${userConfig.dist}".\n    Put it in html as "<script src="/supervisor.js"></script>" to activate the hot reload`);
+};
+
+async function main() {
+
+    await upgradeUserConfig();
+    injectSupervisor();
+
+    // Init all classes
+    const fileLoader = await FileLoader();
+    const fileWatcher = FileWatcher();
+    const router = Router({ userConfig, fileLoader, fileWatcher });
+    const server = DevServer({ serverConfig, router });
+
+    server.run();
 
 }
 
-async function applyDSConfig() {
-	try {
-		const dsconfig = JSON.parse(await fs.promises.readFile('./dsconfig.json', 'utf-8'));		
-		if (dsconfig.hostname)
-			config.hostname = dsconfig.hostname;
-		if (dsconfig.paths)
-			Object.assign(paths, dsconfig.paths);			
-	} catch(e) {}
-}
-
-async function getMimeTypes() {
-	try {
-		return await waitAny(
-			() => fs.promises.readFile(ph.join(config.GLOBAL_MODULE_PATH, 'static', 'mime-types.json'), 'utf-8').then(JSON.parse),
-			() => fs.promises.readFile(ph.join(config.LOCAL_MODULE_PATH, 'static', 'mime-types.json'), 'utf-8').then(JSON.parse)
-		);
-	} catch(e) {		
-		console.log(colors.Error, 'Can\'t read or parse mime-types.json');
-		console.log(colors.Message, e);
-		process.exit(1);
-	}
-}
-
-async function generateCertificates() {	
-	try {
-		await exec('mkdir -p .https');
-		await exec('openssl req -newkey rsa:4096 -new -nodes -x509 -days 3650 -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN=www.example.com" -keyout .https/key.pem -out .https/cert.pem');
-	} catch(e) {
-		console.log(colors.Error, 'Can\'t generate certificates');
-		console.log(colors.Message, e);
-		process.exit(1);
-	}
-}
-
-function listen(server, hostname, port) {
-	server.listen(port, hostname, () => {
-		clearTimeout(cx);
-		cx = setTimeout(async () => {
-			await openBrowser();
-			console.log(colors.Ok, `Server listening on ${hostname}:${port}`);
-		}, 100);		
-	})
-}
-
-async function openBrowser() {
-	try {	
-		await exec(`open -a "Google Chrome" ${config.protocol}://${config.hostname}:${config.port}`);		
-	} catch(e) {}
-}
+main();
