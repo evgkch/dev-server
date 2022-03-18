@@ -1,15 +1,12 @@
 {
   "name": "dev-server",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "Static development server for web applications",
   "main": "index.js",
   "type": "module",
   "bin": {
     "dev-server": "index.js"
   },
-  "os": [
-    "!win32"
-  ],
   "author": "Evgeny Kucherenko <evg.kch@gmail.com>",
-  "license": "MIT"
+  "license": "MIT"  
 }
