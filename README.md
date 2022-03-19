@@ -7,7 +7,8 @@ Static development server for web applications. It includes the supervisor to ho
 `npm install --unsafe-perm evgkch/dev-server[release]`
 
 ### Global Install
-`npm install -g --unsafe-perm evgkch/dev-server[release]`
+`sudo npm install -g --unsafe-perm evgkch/dev-server[release]`
+
 `sudo chown -R [ownerName]: /usr/local/lib/node_modules/dev-server` (to read dev-server files)
 
 ## Running
