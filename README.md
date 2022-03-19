@@ -2,6 +2,9 @@
 Static development server for web applications. It includes the supervisor to hot reolading your project.
 
 ## Install
+
+### Local Install
+`npm install --unsafe-perm evgkch/dev-server[release]`
 Global: `npm install -g --unsafe-perm evgkch/dev-server[release]`
 Local: `npm install --unsafe-perm evgkch/dev-server[release]`
 
@@ -33,8 +36,7 @@ The ***resolve*** field specifies paths that will be resolved. By default, ***/*
 
 ## Supervisor
 The supervisor reload your browser tab if any **dist** file has changed. After runnig you can see the dev-server message at the terminal:
-*"supervisor.js" created at [path/to/dist]. Put it in html as `<script src="/supervisor.js"></script>` to activate the hot reload*. Just use it.
-*Note*: don't forget put **supervisor.js** to your **.gitignore** file.
+*Put `<script src="/supervisor.js"></script>` inside html to activate the hot reload*. Just use it.
 
 ## Example
 See the **example** folder. This example project use [js native module system](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules). **You don't need to compile your project anymore!**

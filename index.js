@@ -9,14 +9,22 @@ import path from 'path';
 const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+JSON.fetch = async function(filePath) {
+    return JSON.parse(await fs.promises.readFile(filePath, 'utf-8'))
+};
+
+const paths = {
+    KEY: path.join(__dirname, 'private/key.pem'),
+    CERT: path.join(__dirname, 'private/cert.pem'),
+    MIME_TYPES: path.join(__dirname, 'files/mime-types.json'),
+    SUPERVISOR: path.join(__dirname, 'files/supervisor.js'),
+    DEV_SERVER: path.join(process.cwd(), 'dev-server.json')
+};
+
 const colors = {
 	Error: '\x1b[41m%s\x1b[0m',
 	Message: '\x1b[33m%s\x1b[0m',
 	Ok: '\x1b[32m%s\x1b[0m'
-};
-
-JSON.fetch = async function(filePath) {
-    return JSON.parse(await fs.promises.readFile(filePath, 'utf-8'))
 };
 
 const serverConfig = {
@@ -34,7 +42,7 @@ const FileLoader = async () => {
     const types = {};
 
     try {
-        Object.assign(types, await JSON.fetch(`${__dirname}/files/mime-types.json`));
+        Object.assign(types, await JSON.fetch(paths.MIME_TYPES));
     } catch(e) {
         console.error('error: Can\'t read or parse "mime-types.json"', e);
         process.exit(1);
@@ -73,13 +81,16 @@ const Router = ({ userConfig, fileLoader, fileWatcher }) => {
 
     const config = {
         dist: userConfig.dist,
-        resolve: Object.assign({
-            '/': path.join('/', userConfig.dist, 'index.html')
-        }, userConfig.resolve)
+        resolve: {
+            '/': path.join('/', userConfig.dist, 'index.html'),
+            ...userConfig.resolve
+        }
     };
 
     const resolve = (pathToFile) => {
-        if (pathToFile in config.resolve)
+        if (pathToFile === '/supervisor.js')
+            return paths.SUPERVISOR;
+        else if (pathToFile in config.resolve)
             return path.join(process.cwd(), config.resolve[pathToFile]);
         else
             return path.join(process.cwd(), config.dist, pathToFile);
@@ -123,16 +134,15 @@ const Router = ({ userConfig, fileLoader, fileWatcher }) => {
 
 const DevServer = ({ serverConfig, router }) => {
 
-    const CERT_FOLDER = 'private';
-
     const server = http2.createSecureServer({
-        key: fs.readFileSync(`${__dirname}/${CERT_FOLDER}/key.pem`),
-        cert: fs.readFileSync(`${__dirname}/${CERT_FOLDER}/cert.pem`)
+        key: fs.readFileSync(paths.KEY),
+        cert: fs.readFileSync(paths.CERT)
     });
 
     const run = () => {
         server.listen(serverConfig.port, serverConfig.hostname, () => {
             console.log(colors.Ok, `Server listening on ${serverConfig.hostname}:${serverConfig.port}`);
+            console.log(colors.Message, `Put "<script src="supervisor.js"></script>" inside html to activate the hot reload`);
         });
     };
 
@@ -158,10 +168,9 @@ const upgradeUserConfig = async () => {
 
     // Try to read and parse dev-server.json to update userConfig
     try {
-        const pathToDevServerConfig = path.join(process.cwd(), 'dev-server.json');
         let config = {};
-        if (fs.existsSync(pathToDevServerConfig))
-            config = await JSON.fetch(pathToDevServerConfig);
+        if (fs.existsSync(paths.DEV_SERVER))
+            config = await JSON.fetch(paths.DEV_SERVER);
         userConfig.dist = dist || config.dist || userConfig.dist;
         if (config.resolve)
             Object.assign(userConfig.resolve, config.resolve);
@@ -170,26 +179,9 @@ const upgradeUserConfig = async () => {
     }
 };
 
-const injectSupervisor = () => {
-    const pathToSupervisor = path.join(process.cwd(), userConfig.dist, 'supervisor.js');
-    // If dist is the argument it has max priority to be set
-    if (!fs.existsSync(pathToSupervisor))
-    {
-        fs.copyFile(`${__dirname}/files/supervisor.js`, pathToSupervisor, (err) => {
-            if (!err)
-                console.log(colors.Message, `message:\n    "supervisor.js" created at "${userConfig.dist}".\n    Put it in html as "<script src="/supervisor.js"></script>" to activate the hot reload`);
-            else
-                console.warn(colors.Message, `message:\n    Can\'t create "supervisor.js".\n    Hot reload will not work`);
-        });
-    }
-    else
-        console.log(colors.Message, `message:\n    "supervisor.js" already created at "${userConfig.dist}".\n    Put it in html as "<script src="/supervisor.js"></script>" to activate the hot reload`);
-};
-
 async function main() {
 
     await upgradeUserConfig();
-    injectSupervisor();
 
     // Init all classes
     const fileLoader = await FileLoader();
