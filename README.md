@@ -5,12 +5,10 @@ Static development server for web applications. It includes the supervisor to ho
 
 ### Local Install
 `npm install --unsafe-perm evgkch/dev-server[release]`
-Global: `npm install -g --unsafe-perm evgkch/dev-server[release]`
-Local: `npm install --unsafe-perm evgkch/dev-server[release]`
 
-`--unsafe-perm` to execute **posinstall.sh** script
-
-`sudo chown -R [ownerName]: /usr/local/lib/node_modules/dev-server` to read dev-server files
+### Global Install
+`npm install -g --unsafe-perm evgkch/dev-server[release]`
+`sudo chown -R [ownerName]: /usr/local/lib/node_modules/dev-server` (to read dev-server files)
 
 ## Running
 Write in project folder: `dev-server [relative/path/to/dist]`
