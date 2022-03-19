@@ -25,7 +25,7 @@ const serverConfig = {
 };
 
 const userConfig = {
-    dist: process.cwd(),
+    dist: '.',
     resolve: {}
 };
 
@@ -74,15 +74,15 @@ const Router = ({ userConfig, fileLoader, fileWatcher }) => {
     const config = {
         dist: userConfig.dist,
         resolve: Object.assign({
-            '/': '/index.html'
+            '/': path.join('/', userConfig.dist, 'index.html')
         }, userConfig.resolve)
     };
 
     const resolve = (pathToFile) => {
         if (pathToFile in config.resolve)
-            return path.join(process.pwd(), config.resolve[pathToFile]);
+            return path.join(process.cwd(), config.resolve[pathToFile]);
         else
-            return path.join(config.dist, pathToFile);
+            return path.join(process.cwd(), config.dist, pathToFile);
     };
 
     const loadFile = async (stream, headers) => {
@@ -158,22 +158,30 @@ const upgradeUserConfig = async () => {
 
     // Try to read and parse dev-server.json to update userConfig
     try {
-        const config = await JSON.fetch(path.join(userConfig.dist, 'dev-server.json'));
-        userConfig.dist = path.join(userConfig.dist, dist || config.dist || '');
+        const pathToDevServerConfig = path.join(process.cwd(), 'dev-server.json');
+        let config = {};
+        if (fs.existsSync(pathToDevServerConfig))
+            config = await JSON.fetch(pathToDevServerConfig);
+        userConfig.dist = dist || config.dist || userConfig.dist;
         if (config.resolve)
             Object.assign(userConfig.resolve, config.resolve);
-    } catch(e) {}
+    } catch(e) {
+        console.log(e);
+    }
 };
 
 const injectSupervisor = () => {
+    const pathToSupervisor = path.join(process.cwd(), userConfig.dist, 'supervisor.js');
     // If dist is the argument it has max priority to be set
-    if (!fs.existsSync(path.join(userConfig.dist, 'supervisor.js')))
-        fs.copyFile(`${__dirname}/files/supervisor.js`, path.join(userConfig.dist, 'supervisor.js'), (err) => {
+    if (!fs.existsSync(pathToSupervisor))
+    {
+        fs.copyFile(`${__dirname}/files/supervisor.js`, pathToSupervisor, (err) => {
             if (!err)
                 console.log(colors.Message, `message:\n    "supervisor.js" created at "${userConfig.dist}".\n    Put it in html as "<script src="/supervisor.js"></script>" to activate the hot reload`);
             else
                 console.warn(colors.Message, `message:\n    Can\'t create "supervisor.js".\n    Hot reload will not work`);
         });
+    }
     else
         console.log(colors.Message, `message:\n    "supervisor.js" already created at "${userConfig.dist}".\n    Put it in html as "<script src="/supervisor.js"></script>" to activate the hot reload`);
 };
