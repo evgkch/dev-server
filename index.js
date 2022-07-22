@@ -141,7 +141,7 @@ const DevServer = ({ serverConfig, router }) => {
 
     const run = () => {
         server.listen(serverConfig.port, serverConfig.hostname, () => {
-            console.log(colors.Ok, `Server listening on ${serverConfig.hostname}:${serverConfig.port}`);
+            console.log(colors.Ok, `Server listening on https://${serverConfig.hostname}:${serverConfig.port}`);
             console.log(colors.Message, `Put "<script src="supervisor.js"></script>" inside html to activate the hot reload`);
         });
     };
@@ -153,8 +153,9 @@ const DevServer = ({ serverConfig, router }) => {
 		case 'EADDRINUSE':
 			server.close();
             serverConfig.port++;
-            return DevServer(router).run();
+            return DevServer({ serverConfig, router }).run();
 		default:
+            server.close();
 			console.log(colors.Message, err);
 		}
 	});

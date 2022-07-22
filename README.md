@@ -18,7 +18,7 @@ Project may has a structure below.
 ```
 project
 │   dev-server.json
-│   ...    
+│   ...
 │
 └───dist
 │   │   index.html

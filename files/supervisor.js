@@ -22,6 +22,9 @@ es.onopen = () => {
 es.onclose = () => {
     console.info('Supervisor deactivated');
 };
+es.onerror = (_, ev) => {
+    console.log(ev);
+};
 document.onvisibilitychange = () => {
     if (!document.hidden && needForceReload)
     {
