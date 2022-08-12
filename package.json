@@ -11,5 +11,8 @@
     "postinstall": "scripts/postinstall.sh private"
   },
   "author": "Evgeny Kucherenko <evg.kch@gmail.com>",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "detect-file-encoding-and-language": "^2.2.2"
+  }
 }

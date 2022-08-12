@@ -5,12 +5,14 @@ import fs from 'fs';
 import url from 'url';
 import process from 'process';
 import path from 'path';
+import getEncoding from "detect-file-encoding-and-language";
 
 const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 JSON.fetch = async function(filePath) {
-    return JSON.parse(await fs.promises.readFile(filePath, 'utf-8'))
+    const encoding = await getEncoding(filePath);
+    return JSON.parse(await fs.promises.readFile(filePath, encoding));
 };
 
 const paths = {
@@ -54,7 +56,7 @@ const FileLoader = async () => {
     };
 
     const fetch = (pathToFile) => {
-        return fs.promises.readFile(pathToFile, 'utf-8');
+        return fs.promises.readFile(pathToFile);
     };
 
     return { getContentType, fetch };
@@ -101,6 +103,8 @@ const Router = ({ userConfig, fileLoader, fileWatcher }) => {
         try {
             const file = await fileLoader.fetch(path);
             stream.respond({
+                'accept-ranges': 'bytes',
+                'content-length': Buffer.byteLength(file),
                 'content-type': fileLoader.getContentType(path),
                 ':status': 200
             });
