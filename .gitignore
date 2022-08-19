@@ -1,2 +1,3 @@
-private
+.certs
 .DS_Store
+node_modules

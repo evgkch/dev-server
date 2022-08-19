@@ -1,6 +1,6 @@
 {
   "name": "dev-server",
-  "version": "2.0.4",
+  "version": "3.0.0",
   "description": "Static development server for web applications",
   "main": "index.js",
   "type": "module",
@@ -8,7 +8,7 @@
     "dev-server": "index.js"
   },
   "scripts": {
-    "postinstall": "scripts/postinstall.sh private"
+    "postinstall": "node ./certs.js"
   },
   "author": "Evgeny Kucherenko <evg.kch@gmail.com>",
   "license": "MIT",

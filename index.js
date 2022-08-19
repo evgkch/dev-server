@@ -2,151 +2,53 @@
 
 import http2 from 'http2';
 import fs from 'fs';
-import url from 'url';
 import process from 'process';
 import path from 'path';
-import getEncoding from "detect-file-encoding-and-language";
+import config from './config.js';
+import colors from './colors.js';
+import * as FileLoader from "./loader.js";
+import { PATH_TO_CERT, PATH_TO_KEY } from './certs.js';
 
-const __filename = url.fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+export { FileLoader };
+export * as Plugins from './plugins/index.js';
 
-JSON.fetch = async function(filePath) {
-    const encoding = await getEncoding(filePath);
-    return JSON.parse(await fs.promises.readFile(filePath, encoding));
-};
+const Router = ({ config }) => {
 
-const paths = {
-    KEY: path.join(__dirname, 'private/key.pem'),
-    CERT: path.join(__dirname, 'private/cert.pem'),
-    MIME_TYPES: path.join(__dirname, 'files/mime-types.json'),
-    SUPERVISOR: path.join(__dirname, 'files/supervisor.js'),
-    DEV_SERVER: path.join(process.cwd(), 'dev-server.json')
-};
+    const PATH_TO_DIST = path.join(process.cwd(), config.dist);
+    const PATH_TO_INDEX = path.join(PATH_TO_DIST, 'index.html');
 
-const colors = {
-	Error: '\x1b[41m%s\x1b[0m',
-	Message: '\x1b[33m%s\x1b[0m',
-	Ok: '\x1b[32m%s\x1b[0m'
-};
-
-const serverConfig = {
-    hostname: '127.0.0.1',
-    port: 3000
-};
-
-const userConfig = {
-    dist: '.',
-    resolve: {}
-};
-
-const FileLoader = async () => {
-
-    const types = {};
-
-    try {
-        Object.assign(types, await JSON.fetch(paths.MIME_TYPES));
-    } catch(e) {
-        console.error('error: Can\'t read or parse "mime-types.json"', e);
-        process.exit(1);
-    }
-
-    const getContentType = (pathToFile) => {
-        const ext = path.extname(pathToFile);
-        return types[ext];
-    };
-
-    const fetch = (pathToFile) => {
-        return fs.promises.readFile(pathToFile);
-    };
-
-    return { getContentType, fetch };
-};
-
-const FileWatcher = () => {
-    let watcher;
-
-    const close = () => {
-        if (watcher)
-            watcher.close();
-        watcher = undefined;
-    };
-
-    const watch = (dist, cb) => {
-        close();
-        watcher = fs.watch(dist, { recursive: true }, cb);
-    };
-
-    return { watch, close };
-};
-
-const Router = ({ userConfig, fileLoader, fileWatcher }) => {
-
-    const config = {
-        dist: userConfig.dist,
-        resolve: {
-            '/': path.join('/', userConfig.dist, 'index.html'),
-            ...userConfig.resolve
-        }
-    };
-
-    const resolve = (pathToFile) => {
-        if (pathToFile === '/supervisor.js')
-            return paths.SUPERVISOR;
-        else if (pathToFile in config.resolve)
-            return path.join(process.cwd(), config.resolve[pathToFile]);
-        else
-            return path.join(process.cwd(), config.dist, pathToFile);
-    };
-
-    const loadFile = async (stream, headers) => {
-        const path = resolve(headers[':path']);
-        try {
-            const file = await fileLoader.fetch(path);
-            stream.respond({
-                'accept-ranges': 'bytes',
-                'content-length': Buffer.byteLength(file),
-                'content-type': fileLoader.getContentType(path),
-                ':status': 200
-            });
-            stream.end(file);
-        } catch(e) {
-            console.log(colors.Message, `Not found ${path}`, e);
-            stream.respond({ ':status': 404	});
-            stream.end('Not found');
-        }
-    };
-
-    const watchFolder = (stream) => {
-        stream.respond({
-            'content-type': 'text/event-stream',
-            ':status': 200
-        });
-        fileWatcher.watch(config.dist, () => {
-            stream.write('data: :refresh\n\n');
-        });
-    };
+    // Create routes from main route and config.routes
+    const routes = [
+        {
+            if: path => path === '/',
+            do: async (_, stream) => {
+                await FileLoader.sendFile(PATH_TO_INDEX, stream);
+            }
+        },
+        ...config.routes
+    ];
 
     const route = async (stream, headers) => {
-        if (headers[':path'] === '/watch')
-            watchFolder(stream, headers);
+        const route = routes.find(route => route.if(headers[':path']));
+        if (route)
+            route.do(headers[':path'], stream);
         else
-            await loadFile(stream, headers);
+            await FileLoader.sendFile(path.join(PATH_TO_DIST, headers[':path']), stream);
     };
 
     return { route };
 };
 
-const DevServer = ({ serverConfig, router }) => {
+const DevServer = ({ config, router }) => {
 
     const server = http2.createSecureServer({
-        key: fs.readFileSync(paths.KEY),
-        cert: fs.readFileSync(paths.CERT)
+        key: fs.readFileSync(PATH_TO_KEY),
+        cert: fs.readFileSync(PATH_TO_CERT)
     });
 
     const run = () => {
-        server.listen(serverConfig.port, serverConfig.hostname, () => {
-            console.log(colors.Ok, `Server listening on https://${serverConfig.hostname}:${serverConfig.port}`);
-            console.log(colors.Message, `Put "<script src="supervisor.js"></script>" inside html to activate the hot reload`);
+        server.listen(config.port, config.hostname, () => {
+            console.log(colors.Ok, `Server listening on https://${config.hostname}:${config.port}`);
         });
     };
 
@@ -156,8 +58,8 @@ const DevServer = ({ serverConfig, router }) => {
 		{
 		case 'EADDRINUSE':
 			server.close();
-            serverConfig.port++;
-            return DevServer({ serverConfig, router }).run();
+            config.port++;
+            return DevServer({ config, router }).run();
 		default:
             server.close();
 			console.log(colors.Message, err);
@@ -167,32 +69,41 @@ const DevServer = ({ serverConfig, router }) => {
     return { run };
 };
 
-const upgradeUserConfig = async () => {
-    // Getting args
-    const [dist, ...args] = process.argv.slice(2);
+async function upgradeConfig() {
+    const PATH_TO_DEFAULT_CONFIG = path.join(config.__dirname, 'files/dev-server.config.js');
+    const PATH_TO_USER_CONFIG = path.join(process.cwd(), 'dev-server.config.js');
 
-    // Try to read and parse dev-server.json to update userConfig
-    try {
-        let config = {};
-        if (fs.existsSync(paths.DEV_SERVER))
-            config = await JSON.fetch(paths.DEV_SERVER);
-        userConfig.dist = dist || config.dist || userConfig.dist;
-        if (config.resolve)
-            Object.assign(userConfig.resolve, config.resolve);
-    } catch(e) {
-        console.log(e);
+    if (!fs.existsSync(PATH_TO_USER_CONFIG)) {
+        fs.cpSync(PATH_TO_DEFAULT_CONFIG, PATH_TO_USER_CONFIG);
     }
+
+    try {
+        const userConfig = await import(PATH_TO_USER_CONFIG).then(m => m.default);
+        if (userConfig.hostname) {
+            config.hostname = userConfig.hostname;
+        }
+        if (userConfig.port) {
+            config.port = userConfig.port;
+        }
+        if (userConfig.dist) {
+            config.dist = userConfig.dist;
+        }
+        if (userConfig.routes) {
+            config.routes = userConfig.routes.flatMap(route => route(config.dist));
+        }
+    } catch(err) {
+        console.log(colors.Message, err);
+        process.exit(1);
+    }
+
 };
 
 async function main() {
 
-    await upgradeUserConfig();
+    await upgradeConfig();
 
-    // Init all classes
-    const fileLoader = await FileLoader();
-    const fileWatcher = FileWatcher();
-    const router = Router({ userConfig, fileLoader, fileWatcher });
-    const server = DevServer({ serverConfig, router });
+    const router = Router({ config });
+    const server = DevServer({ config, router });
 
     server.run();
 

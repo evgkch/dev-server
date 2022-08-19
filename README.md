@@ -5,16 +5,15 @@ Static development server for web applications. It includes the supervisor to ho
 
 ### Local Install
 `git clone https://github.com/evgkch/dev-server.git`
-`sudo npm install -g --unsafe-perm [path/to/repo]`
-`sudo chown -R [ownerName]: /usr/local/lib/node_modules/dev-server` (to read dev-server files)
+`sudo npm install -g [path/to/repo]`
 
 ## Running
-Write in project folder: `dev-server [relative/path/to/dist]`
+Write in project folder: `dev-server`
 
 Project may has a structure below.
 ```
 project
-│   dev-server.json
+│   dev-server.config.js
 │   ...
 │
 └───dist
@@ -25,14 +24,19 @@ project
 ```
 
 ## Config (optional)
-To config your server create **dev-server.json** in the project root. Config has two optional fields: ***dist*** and ***resolve***.
-The ***dist*** field specifies the path to your distribution. By default, it is equal to the current path. In addition, you can set it as the first argument when calling the `dev-server` command (see the *Usage* paragraph). In this case, this path will have the highest priority.
-The ***resolve*** field specifies paths that will be resolved. By default, ***/*** satisfy the ***/index.html***. To change the path to the main html file set `{ '/': '/[your/html].html' }`.
-*Note*: all paths should have absolute notation.
+To config your server create **dev-server.config.js** in the project root. Config has four optional fields: ***host***, ***port****,***dist***, ***routes***.
+The ***dist*** field specifies the path to your distribution. By default, it is equal to the current path.
+The ***routes*** field specifies paths that will be resolved. It has the interface below.
 
-## Supervisor
-The supervisor reload your browser tab if any **dist** file has changed. After runnig you can see the dev-server message at the terminal:
-*Put `<script src="supervisor.js"></script>` inside html to activate the hot reload*. Just use it.
-
-## Example
-See the **example** folder. This example project use [js native module system](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules). **You don't need to compile your project anymore!**
+```typescript
+interface Config {
+    host?: string,
+    port?: string,
+    dist?: string,
+    // Every route is depended on path to dist function of array of conditions and actions
+    routes?: Array<(dist: string) => {
+        if: (path: string) => boolean,
+        do: (path: string, stream: http2.ServerHttp2Stream) => void
+    }[]>
+}
+```
