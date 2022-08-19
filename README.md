@@ -1,14 +1,20 @@
 # dev-server
-Static development server for web applications. It includes the supervisor to hot reolading your project.
+Static development server for web applications.
+It includes standart plugins: "watcher" (hot-reload) and "module" (import dependecies from node_modules)
 
 ## Install
-
-### Local Install
 `git clone https://github.com/evgkch/dev-server.git`
+
 `sudo npm install -g [path/to/repo]`
 
+## Init
+
+`dev-server --init`
+
+Created `dev-server.config.js` with standart plugins and presets
+
 ## Running
-Write in project folder: `dev-server`
+After init write in project folder: `dev-server`
 
 Project may has a structure below.
 ```

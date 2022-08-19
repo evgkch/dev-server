@@ -69,12 +69,13 @@ const DevServer = ({ config, router }) => {
     return { run };
 };
 
-async function upgradeConfig() {
+async function init() {
     const PATH_TO_DEFAULT_CONFIG = path.join(config.__dirname, 'files/dev-server.config.js');
     const PATH_TO_USER_CONFIG = path.join(process.cwd(), 'dev-server.config.js');
 
     if (!fs.existsSync(PATH_TO_USER_CONFIG)) {
         fs.cpSync(PATH_TO_DEFAULT_CONFIG, PATH_TO_USER_CONFIG);
+        console.log(colors.Message, `dev-server.config.js create in current dir`);
     }
 
     try {
@@ -98,9 +99,9 @@ async function upgradeConfig() {
 
 };
 
-async function main() {
+async function dev() {
 
-    await upgradeConfig();
+    await init();
 
     const router = Router({ config });
     const server = DevServer({ config, router });
@@ -109,4 +110,13 @@ async function main() {
 
 }
 
-main();
+const [options] = process.argv.slice(2);
+
+switch (options) {
+    case '--init':
+        init();
+        break;
+    default:
+        dev();
+}
+
