@@ -33,4 +33,6 @@ export const routes = (dist) => [
     },
 ];
 
-console.log(colors.Ok, `Modules resolver connected. It will be try to find module in node_modules if requested path does not exist`);
+export const log = () => {
+    console.log(colors.Ok, `Modules resolver connected. It will be try to find module in node_modules if requested path does not exist`);
+};

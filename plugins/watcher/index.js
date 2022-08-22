@@ -44,4 +44,6 @@ export const routes = (dist) => [
     },
 ];
 
-console.log(colors.Ok, `To activate hot reload put "<script src="supervisor.js"></script>" inside html or import("supervisor.js") and append it as script`);
+export const log = () => {
+    console.log(colors.Ok, `To activate hot reload put "<script src="supervisor.js"></script>" inside html or import("supervisor.js") and append it as script`);
+};
