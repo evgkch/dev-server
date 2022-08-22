@@ -7,3 +7,6 @@ export default {
         Plugins.Module.routes
     ]
 }
+
+Plugins.FileWatcher.log();
+Plugins.Module.log();

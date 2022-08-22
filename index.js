@@ -10,7 +10,6 @@ import * as FileLoader from "./loader.js";
 import { PATH_TO_CERT, PATH_TO_KEY } from './certs.js';
 
 export { FileLoader };
-export * as Plugins from './plugins/index.js';
 
 const Router = ({ config }) => {
 
