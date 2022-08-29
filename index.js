@@ -12,6 +12,10 @@ import { PATH_TO_CERT, PATH_TO_KEY } from './certs.js';
 export { FileLoader };
 export * as Plugins from './plugins/index.js';
 
+export function getDist() {
+    return config.dist;
+}
+
 const Router = ({ config }) => {
 
     const PATH_TO_DIST = path.join(process.cwd(), config.dist);
@@ -19,13 +23,13 @@ const Router = ({ config }) => {
 
     // Create routes from main route and config.routes
     const routes = [
+        ...config.routes,
         {
             if: path => path === '/',
             do: async (_, stream) => {
-                await FileLoader.sendFile(PATH_TO_INDEX, stream);
+                await FileLoader.sendFile(stream, PATH_TO_INDEX);
             }
-        },
-        ...config.routes
+        }
     ];
 
     const route = async (stream, headers) => {
@@ -33,7 +37,7 @@ const Router = ({ config }) => {
         if (route)
             route.do(headers[':path'], stream);
         else
-            await FileLoader.sendFile(path.join(PATH_TO_DIST, headers[':path']), stream);
+            await FileLoader.sendFile(stream, path.join(PATH_TO_DIST, headers[':path']));
     };
 
     return { route };
@@ -90,7 +94,7 @@ async function init() {
             config.dist = userConfig.dist;
         }
         if (userConfig.routes) {
-            config.routes = userConfig.routes.flatMap(route => route(config.dist));
+            config.routes = userConfig.routes;
         }
     } catch(err) {
         console.log(colors.Message, err);

@@ -3,9 +3,12 @@ Static development server for web applications.
 It includes standart plugins: "watcher" (hot-reload) and "module" (import dependecies from node_modules)
 
 ## Install
+
 `git clone https://github.com/evgkch/dev-server.git`
 
-`sudo npm install -g [path/to/repo]`
+`cd [path/to/repo] && npm i`
+
+`sudo npm install -g .`
 
 ## Init
 

@@ -19,7 +19,7 @@ export function getContentType(filePath) {
     return MimeTypes[ext];
 };
 
-export async function sendFile(filePath, stream) {
+export async function sendFile(stream, filePath) {
     try {
         const file = await loadFile(filePath);
         stream.respond({

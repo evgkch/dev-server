@@ -1,8 +1,9 @@
 import fs from "fs";
 import url from 'url';
 import path from "path";
-import * as FileLoader from "../../loader.js";
 import colors from "../../colors.js";
+import * as FileLoader from "../../loader.js";
+import { getDist } from "../../index.js";
 
 const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,12 +22,12 @@ export const watch = (dist, cb) => {
     watcher = fs.watch(dist, { recursive: true }, cb);
 };
 
-export const routes = (dist) => [
+export const routes = [
     // Send supervisor script
     {
         if: path => path === '/supervisor.js',
         do: async (_, stream) => {
-            await FileLoader.sendFile(path.join(__dirname, 'supervisor.js'), stream);
+            await FileLoader.sendFile(stream, path.join(__dirname, 'supervisor.js'));
         }
     },
     // Send refresh event
@@ -37,7 +38,7 @@ export const routes = (dist) => [
                 'content-type': 'text/event-stream',
                 ':status': 200
             });
-            watch(dist, () => {
+            watch(getDist(), () => {
                 stream.write('data: :refresh\n\n');
             });
         }
