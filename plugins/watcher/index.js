@@ -1,28 +1,28 @@
-import fs from "fs";
-import url from 'url';
-import path from "path";
-import colors from "../../colors.js";
-import * as FileLoader from "../../loader.js";
-import { getDist } from "../../index.js";
+const fs = require("fs");
+const url = require('url');
+const path = require("path");
+const colors = require("../../colors.js");
+const FileLoader = require("../../loader.js");
+const { dist } = require("../../config.js");
 
-const __filename = url.fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+//const __filename = url.fileURLToPath(import.meta.url);
+//const __dirname = path.dirname(__filename);
 
 // Watcher
 let watcher = undefined;
 
-export const close = () => {
+const close = () => {
     if (watcher)
         watcher.close();
     watcher = undefined;
 };
 
-export const watch = (dist, cb) => {
+const watch = (dist, cb) => {
     close();
     watcher = fs.watch(dist, { recursive: true }, cb);
 };
 
-export const routes = [
+const routes = [
     // Send supervisor script
     {
         if: path => path === '/supervisor.js',
@@ -38,13 +38,20 @@ export const routes = [
                 'content-type': 'text/event-stream',
                 ':status': 200
             });
-            watch(getDist(), () => {
+            watch(dist, () => {
                 stream.write('data: :refresh\n\n');
             });
         }
     },
 ];
 
-export const log = () => {
-    console.log(colors.Ok, `To activate hot reload put "<script src="supervisor.js"></script>" inside html or import("supervisor.js") and append it as script`);
+const log = () => {
+    console.log(colors.Message, `To activate hot reload put "<script src="supervisor.js"></script>" inside html or import("supervisor.js") and append it as script`);
+};
+
+module.exports = {
+    close,
+    watch,
+    routes,
+    log
 };

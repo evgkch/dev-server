@@ -10,6 +10,10 @@ It includes standart plugins: "watcher" (hot-reload) and "module" (import depend
 
 `sudo npm install -g .`
 
+If execution has error "Error: Cannot find module 'dev-server'":
+- Find global node_modules location (`npm root -g`)
+- `export NODE_PATH=[The path above]`
+
 ## Init
 
 `dev-server --init`

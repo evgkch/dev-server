@@ -1,17 +1,17 @@
-import fs from "fs";
-import process from "process";
-import _path from "path";
-import colors from "../../colors.js";
-import * as FileLoader from "../../loader.js";
-import { getDist } from "../../index.js";
+const fs = require("fs");
+const process = require("process");
+const _path = require("path");
+const colors = require("../../colors.js");
+const FileLoader = require("../../loader.js");
+const { dist } = require("../../config.js");
 
 // Module name to module dist map
 const cache = new Map;
 
 // Send refresh event
-export const route = {
+const route = {
     // Check if module in cache or does not exist in dist folder
-    if: path => cache.has(path) || !fs.existsSync(_path.join(getDist(), path)),
+    if: path => cache.has(path) || !fs.existsSync(_path.join(dist, path)),
     do: async (path, stream) => {
         // If module is not in the cache trying to find it
         if (!cache.has(path)) {
@@ -32,6 +32,11 @@ export const route = {
     }
 };
 
-export const log = () => {
-    console.log(colors.Ok, `Modules resolver connected. It will be try to find module in node_modules if requested path does not exist`);
+const log = () => {
+    console.log(colors.Message, `Modules resolver connected. It will be try to find module in node_modules if requested path does not exist`);
+};
+
+module.exports = {
+    route,
+    log
 };

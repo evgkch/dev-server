@@ -1,25 +1,25 @@
-import fs from "fs";
-import path from "path";
-import getFileInfo from "detect-file-encoding-and-language";
-import config from './config.js';
-import colors from './colors.js';
+const fs = require("fs");
+const path = require("path");
+const getFileInfo = require("detect-file-encoding-and-language");
+const config = require('./config.js');
+const colors = require('./colors.js');
 
 const PATH_TO_MIME_TYPES = path.join(config.__dirname, 'files/mime-types.json');
 const MimeTypes = JSON.parse(fs.readFileSync(PATH_TO_MIME_TYPES, { encoding: 'utf-8' }));
 
 // Load file by path
-export async function loadFile(filePath) {
+async function loadFile(filePath) {
     const fileInfo = await getFileInfo(filePath);
     return fs.promises.readFile(filePath, fileInfo);
 }
 
 // file -> content type
-export function getContentType(filePath) {
+function getContentType(filePath) {
     const ext = path.extname(filePath);
     return MimeTypes[ext];
 };
 
-export async function sendFile(stream, filePath) {
+async function sendFile(stream, filePath) {
     try {
         const file = await loadFile(filePath);
         stream.respond({
@@ -34,4 +34,10 @@ export async function sendFile(stream, filePath) {
         stream.respond({ ':status': 404	});
         stream.end('Not found');
     }
+};
+
+module.exports = {
+    loadFile,
+    getContentType,
+    sendFile
 };
