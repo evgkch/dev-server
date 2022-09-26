@@ -2,7 +2,7 @@
 const { Plugins } = require("dev-server");
 
 module.exports = {
-    dist: '.',
+    dist: 'dist',
     routes: [
         ...Plugins.FileWatcher.routes,
         Plugins.Module.route

@@ -19,7 +19,8 @@ function getContentType(filePath) {
     return MimeTypes[ext];
 };
 
-async function sendFile(stream, filePath) {
+async function sendFile(filePath, stream) {
+    console.log(filePath);
     try {
         const file = await loadFile(filePath);
         stream.respond({

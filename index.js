@@ -19,18 +19,18 @@ const Router = ({ config }) => {
         ...config.routes,
         {
             if: path => path === '/',
-            do: async (_, stream) => {
-                await FileLoader.sendFile(stream, PATH_TO_INDEX);
+            do: async (_, __, stream) => {
+                await FileLoader.sendFile(PATH_TO_INDEX, stream);
             }
         }
     ];
 
     const route = async (stream, headers) => {
-        const route = routes.find(route => route.if(headers[':path']));
+        const route = routes.find(route => route.if(headers[':path'], config.dist));
         if (route)
-            route.do(headers[':path'], stream);
+            route.do(headers[':path'], config.dist, stream);
         else
-            await FileLoader.sendFile(stream, path.join(PATH_TO_DIST, headers[':path']));
+            await FileLoader.sendFile(path.join(PATH_TO_DIST, headers[':path']), stream);
     };
 
     return { route };
@@ -77,6 +77,7 @@ async function init() {
 
     try {
         const userConfig = await import(PATH_TO_USER_CONFIG).then(m => m.default);
+        console.log(userConfig);
         if (userConfig.hostname) {
             config.hostname = userConfig.hostname;
         }

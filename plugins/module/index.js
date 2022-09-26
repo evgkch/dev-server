@@ -3,7 +3,6 @@ const process = require("process");
 const _path = require("path");
 const colors = require("../../colors.js");
 const FileLoader = require("../../loader.js");
-const { dist } = require("../../config.js");
 
 // Module name to module dist map
 const cache = new Map;
@@ -11,8 +10,8 @@ const cache = new Map;
 // Send refresh event
 const route = {
     // Check if module in cache or does not exist in dist folder
-    if: path => cache.has(path) || !fs.existsSync(_path.join(dist, path)),
-    do: async (path, stream) => {
+    if: (path, dist) => cache.has(path) || !fs.existsSync(_path.join(dist, path)),
+    do: async (path, _, stream) => {
         // If module is not in the cache trying to find it
         if (!cache.has(path)) {
             try {
@@ -28,7 +27,7 @@ const route = {
             } catch(err) {}
         }
         // Sending file
-        await FileLoader.sendFile(stream, cache.get(path));
+        await FileLoader.sendFile(cache.get(path), stream);
     }
 };
 
