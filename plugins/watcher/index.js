@@ -24,7 +24,7 @@ const routes = [
     // Send supervisor script
     {
         if: path => path === '/supervisor.js',
-        do: async (_, stream) => {
+        do: async (_, dist, stream) => {
             await FileLoader.sendFile(path.join(__dirname, 'supervisor.js'), stream);
         }
     },
