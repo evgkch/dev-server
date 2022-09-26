@@ -10,7 +10,10 @@ const MimeTypes = JSON.parse(fs.readFileSync(PATH_TO_MIME_TYPES, { encoding: 'ut
 // Load file by path
 async function loadFile(filePath) {
     const fileInfo = await getFileInfo(filePath);
-    return fs.promises.readFile(filePath, fileInfo);
+    if (fileInfo && fileInfo.encoding !== 'GB18030')
+        return fs.promises.readFile(filePath, fileInfo);
+    else
+        return fs.promises.readFile(filePath);
 }
 
 // file -> content type
@@ -20,7 +23,6 @@ function getContentType(filePath) {
 };
 
 async function sendFile(filePath, stream) {
-    console.log(filePath);
     try {
         const file = await loadFile(filePath);
         stream.respond({
@@ -31,7 +33,7 @@ async function sendFile(filePath, stream) {
         });
         stream.end(file);
     } catch(e) {
-        console.log(colors.Message, `Not found ${filePath}`, e);
+        console.log(colors.Message, `Not found ${filePath}`);
         stream.respond({ ':status': 404	});
         stream.end('Not found');
     }
