@@ -1,13 +1,17 @@
-const path = require("path");
-const process = require('process');
-const { exec } = require('child_process');
-const config = require("./config.js");
-const colors = require('./colors.js');
+import path from "path";
+import process from 'process';
+import { exec } from 'child_process';
+import config from "./config.js";
+import colors from './colors.js';
+import url from 'url';
+
+const __filename = url.fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const folder = path.join(config.__dirname, '.certs');
 
-const PATH_TO_KEY = path.join(folder, 'key.pem');
-const PATH_TO_CERT = path.join(folder, 'cert.pem');
+export const PATH_TO_KEY = path.join(folder, 'key.pem');
+export const PATH_TO_CERT = path.join(folder, 'cert.pem');
 
 exec(`mkdir -p ${folder}`)
 // Generate Certs
@@ -25,8 +29,3 @@ exec(`openssl req \
             process.exit(1);
         }
 });
-
-module.exports = {
-    PATH_TO_KEY,
-    PATH_TO_CERT
-};

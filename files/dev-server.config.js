@@ -1,7 +1,7 @@
 #!/usr/bin/env -S node --experimental-modules
-const { Plugins } = require("dev-server");
+import { Plugins } from "dev-server";
 
-module.exports = {
+export default {
     dist: 'dist',
     routes: [
         ...Plugins.FileWatcher.routes,

@@ -1,14 +1,14 @@
-const fs = require("fs");
-const path = require("path");
-const getFileInfo = require("detect-file-encoding-and-language");
-const config = require('./config.js');
-const colors = require('./colors.js');
+import fs from "fs";
+import path from "path";
+import getFileInfo from "detect-file-encoding-and-language";
+import config from './config.js';
+import colors from './colors.js';
 
 const PATH_TO_MIME_TYPES = path.join(config.__dirname, 'files/mime-types.json');
 const MimeTypes = JSON.parse(fs.readFileSync(PATH_TO_MIME_TYPES, { encoding: 'utf-8' }));
 
 // Load file by path
-async function loadFile(filePath) {
+export async function loadFile(filePath) {
     const fileInfo = await getFileInfo(filePath);
     if (fileInfo && fileInfo.encoding !== 'GB18030')
         return fs.promises.readFile(filePath, fileInfo);
@@ -17,12 +17,12 @@ async function loadFile(filePath) {
 }
 
 // file -> content type
-function getContentType(filePath) {
+export function getContentType(filePath) {
     const ext = path.extname(filePath);
     return MimeTypes[ext];
 };
 
-async function sendFile(filePath, stream) {
+export async function sendFile(filePath, stream) {
     try {
         const file = await loadFile(filePath);
         stream.respond({
@@ -37,10 +37,4 @@ async function sendFile(filePath, stream) {
         stream.respond({ ':status': 404	});
         stream.end('Not found');
     }
-};
-
-module.exports = {
-    loadFile,
-    getContentType,
-    sendFile
 };

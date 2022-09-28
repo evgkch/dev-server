@@ -1,11 +1,15 @@
-const http2 = require('http2');
-const fs = require('fs');
-const process = require('process');
-const path = require('path');
-const config = require('./config.js');
-const colors = require('./colors.js');
-const FileLoader = require("./loader.js");
-const { PATH_TO_CERT, PATH_TO_KEY } = require('./certs.js');
+#!/usr/bin/env -S node --experimental-modules
+
+import http2 from 'http2';
+import fs from 'fs';
+import process from 'process';
+import path from 'path';
+import config from './config.js';
+import colors from './colors.js';
+import * as FileLoader from "./loader.js";
+import { PATH_TO_CERT, PATH_TO_KEY } from './certs.js';
+export * as Plugins from './plugins/index.js';
+export * as FileLoader from './loader.js'
 
 const Router = ({ config }) => {
 
@@ -114,8 +118,3 @@ switch (options) {
     default:
         dev();
 }
-
-module.exports = {
-    FileLoader,
-    Plugins: require('./plugins/index.js')
-};

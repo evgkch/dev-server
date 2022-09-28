@@ -1,4 +1,2 @@
-module.exports = {
-    FileWatcher: require('./watcher/index.js'),
-    Module: require('./module/index.js')
-};
+export * as FileWatcher from './watcher/index.js';
+export * as Module from './module/index.js';

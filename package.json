@@ -6,6 +6,7 @@
   "bin": {
     "dev-server": "index.js"
   },
+  "type": "module",
   "scripts": {
     "postinstall": "node ./certs.js"
   },

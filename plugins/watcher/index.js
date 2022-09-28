@@ -1,26 +1,27 @@
-const fs = require("fs");
-const path = require("path");
-const colors = require("../../colors.js");
-const FileLoader = require("../../loader.js");
+import fs from "fs";
+import path from "path";
+import colors from "../../colors.js";
+import * as FileLoader from "../../loader.js";
+import url from 'url';
 
-//const __filename = url.fileURLToPath(import.meta.url);
-//const __dirname = path.dirname(__filename);
+const __filename = url.fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Watcher
 let watcher = undefined;
 
-const close = () => {
+export const close = () => {
     if (watcher)
         watcher.close();
     watcher = undefined;
 };
 
-const watch = (dist, cb) => {
+export const watch = (dist, cb) => {
     close();
     watcher = fs.watch(dist, { recursive: true }, cb);
 };
 
-const routes = [
+export const routes = [
     // Send supervisor script
     {
         if: path => path === '/supervisor.js',
@@ -37,19 +38,13 @@ const routes = [
                 ':status': 200
             });
             watch(dist, () => {
+                console.log('refresh');
                 stream.write('data: :refresh\n\n');
             });
         }
     },
 ];
 
-const log = () => {
+export const log = () => {
     console.log(colors.Message, `To activate hot reload put "<script src="supervisor.js"></script>" inside html or import("supervisor.js") and append it as script`);
-};
-
-module.exports = {
-    close,
-    watch,
-    routes,
-    log
 };
