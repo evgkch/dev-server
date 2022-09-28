@@ -1,5 +1,3 @@
-#!/usr/bin/env -S node --experimental-modules
-
 const http2 = require('http2');
 const fs = require('fs');
 const process = require('process');
@@ -77,7 +75,6 @@ async function init() {
 
     try {
         const userConfig = await import(PATH_TO_USER_CONFIG).then(m => m.default);
-        console.log(userConfig);
         if (userConfig.hostname) {
             config.hostname = userConfig.hostname;
         }
