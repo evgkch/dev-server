@@ -51,7 +51,7 @@ export class Watcher extends EventEmitter {
     }
 
     init(router) {
-        router.set("^\/.dev.supervisor.js$", path.join(__dirname, '.dev.supervisor.js'));
+        router.set("^\/(.dev.supervisor.js)$", "node_modules/dev-server/plugins/watcher/$1");
         router.set( "^\/:watch$", (_, stream) => {
             stream.respond({
                 'content-type': 'text/event-stream',
