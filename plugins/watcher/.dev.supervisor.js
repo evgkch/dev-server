@@ -1,7 +1,7 @@
 // Flag to force page reload after activation
 // if the project has been modified
 let needForceReload = false;
-const es = new EventSource("/watch");
+const es = new EventSource("/:watch");
 es.onmessage = evt => {
     switch(evt.data)
     {
@@ -31,4 +31,7 @@ document.onvisibilitychange = () => {
         window.location.reload();
         needForceReload = false;
     }
+};
+document.onunload = () => {
+    es.close();
 };

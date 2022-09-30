@@ -14,28 +14,32 @@ export * as FileLoader from './loader.js'
 const Router = ({ config }) => {
 
     const PATH_TO_DIST = path.join(process.cwd(), config.dist);
-    const PATH_TO_INDEX = path.join(PATH_TO_DIST, 'index.html');
 
     // Create routes from main route and config.routes
-    const routes = [
-        ...config.routes,
-        {
-            if: path => path === '/',
-            do: async (_, __, stream) => {
-                await FileLoader.sendFile(PATH_TO_INDEX, stream);
-            }
-        }
-    ];
+    const routes = [];
 
-    const route = async (stream, headers) => {
-        const route = routes.find(route => route.if(headers[':path'], config.dist));
-        if (route)
-            route.do(headers[':path'], config.dist, stream);
-        else
-            await FileLoader.sendFile(path.join(PATH_TO_DIST, headers[':path']), stream);
+    const set = (regex, replacer) => {
+        routes.push([new RegExp(regex), replacer]);
     };
 
-    return { route };
+    for (let regex in config.routes) {
+        set(regex, config.routes[regex]);
+    }
+
+    const route = async (stream, headers) => {
+        const route = routes.find(route => headers[':path'].match(route[0]));
+        if (route) {
+            if (typeof route[1]  === 'string') {
+                await FileLoader.sendFile(path.join(process.cwd(), headers[':path'].replace(route[0], route[1])), stream);
+            } else {
+                route[1](path.join(process.cwd(), headers[':path']), stream);
+            }
+        } else {
+            await FileLoader.sendFile(path.join(PATH_TO_DIST, headers[':path']), stream);
+        }
+    };
+
+    return { route, set };
 };
 
 const DevServer = ({ config, router }) => {
@@ -50,7 +54,6 @@ const DevServer = ({ config, router }) => {
             console.log(colors.Ok, `Server listening on https://${config.hostname}:${config.port}`);
         });
     };
-
     server.on('stream', router.route);
     server.on('error', async err => {
 		switch (err.code)
@@ -88,9 +91,8 @@ async function init() {
         if (userConfig.dist) {
             config.dist = userConfig.dist;
         }
-        if (userConfig.routes) {
-            config.routes = userConfig.routes;
-        }
+        config.routes = userConfig.routes || {};
+        config.plugins = userConfig.plugins || [];
     } catch(err) {
         console.log(colors.Message, err);
         process.exit(1);
@@ -104,6 +106,10 @@ async function dev() {
 
     const router = Router({ config });
     const server = DevServer({ config, router });
+
+    for (const plugin of config.plugins) {
+        plugin.init(router);
+    }
 
     server.run();
 

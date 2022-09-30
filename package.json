@@ -1,6 +1,6 @@
 {
   "name": "dev-server",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "description": "Static development server for web applications",
   "main": "index.js",
   "bin": {

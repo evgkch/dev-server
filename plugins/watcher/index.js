@@ -1,50 +1,66 @@
 import fs from "fs";
 import path from "path";
 import colors from "../../colors.js";
-import * as FileLoader from "../../loader.js";
 import url from 'url';
+import EventEmitter from "events";
 
 const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Watcher
-let watcher = undefined;
+export class Watcher extends EventEmitter {
 
-export const close = () => {
-    if (watcher)
-        watcher.close();
-    watcher = undefined;
-};
+    static DEBOUNCE = 200;
 
-export const watch = (dist, cb) => {
-    close();
-    watcher = fs.watch(dist, { recursive: true }, cb);
-};
+    _watchers = new Map;
+    _cx;
 
-export const routes = [
-    // Send supervisor script
-    {
-        if: path => path === '/supervisor.js',
-        do: async (_, dist, stream) => {
-            await FileLoader.sendFile(path.join(__dirname, 'supervisor.js'), stream);
+    constructor(props = { dirs: ["."] }) {
+        super();
+        for (const dir of props.dirs) {
+            const watcher = fs.watch(dir, { recursive: true }, event => {
+                if (event === 'change') {
+                    this._cx = setTimeout(() => this.emit('change'), Watcher.DEBOUNCE);
+                }
+            });
+            this._watchers.set(dir, watcher);
         }
-    },
-    // Send refresh event
-    {
-        if: path => path === '/watch',
-        do: (_, dist, stream) => {
+    }
+
+    watch(dir) {
+        const watcher = fs.watch(dir, { recursive: true }, () => {
+            clearTimeout(this._cx);
+            this._cx = setTimeout(() => this.emit('change'), Watcher.DEBOUNCE);
+        });
+        this._watchers.set(dir, watcher);
+    }
+
+    unwatch(dir) {
+        const watcher = this._watchers.get(dir);
+        if (watcher) {
+            watcher.close();
+            this._watchers.delete(dir);
+        }
+    }
+
+    close() {
+        for (const dir of this._watchers.keys()) {
+            this.unwatch(dir);
+        }
+        clearTimeout(this._cx);
+        this._cx = null;
+    }
+
+    init(router) {
+        router.set("^\/.dev.supervisor.js$", path.join(__dirname, '.dev.supervisor.js'));
+        router.set( "^\/:watch$", (_, stream) => {
             stream.respond({
                 'content-type': 'text/event-stream',
                 ':status': 200
             });
-            watch(dist, () => {
-                console.log('refresh');
-                stream.write('data: :refresh\n\n');
-            });
-        }
-    },
-];
+            this.on("change", () => stream.write('data: :refresh\n\n'));
+            stream.on("close", () => this.removeAllListeners("change"));
+        });
+        console.log(colors.Message, `To activate hot reload put "<script src=".dev.supervisor.js"></script>" inside html or import(".dev.supervisor.js") and append it as script`);
+    }
 
-export const log = () => {
-    console.log(colors.Message, `To activate hot reload put "<script src="supervisor.js"></script>" inside html or import("supervisor.js") and append it as script`);
-};
+}

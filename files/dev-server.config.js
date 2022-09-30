@@ -2,12 +2,11 @@
 import { Plugins } from "dev-server";
 
 export default {
-    dist: 'dist',
-    routes: [
-        ...Plugins.FileWatcher.routes,
-        Plugins.Module.route
+    dist: '.',
+    routes: {
+        "^\/$": "static/index.html"
+    },
+    plugins: [
+        new Plugins.Watcher
     ]
 }
-
-Plugins.FileWatcher.log();
-Plugins.Module.log();
