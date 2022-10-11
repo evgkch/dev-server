@@ -24,14 +24,12 @@ export function getContentType(filePath) {
 
 export async function sendFile(filePath, stream) {
     try {
-        const file = await loadFile(filePath);
-        stream.respond({
+        stream.respondWithFile(filePath, {
             'accept-ranges': 'bytes',
             'content-length': Buffer.byteLength(file),
             'content-type': getContentType(filePath),
             ':status': 200
         });
-        stream.end(file);
     } catch(e) {
         console.log(colors.Message, `Not found ${filePath}`);
         stream.respond({ ':status': 404	});
