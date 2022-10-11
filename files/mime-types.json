@@ -120,7 +120,7 @@
 	".dataless"		: "application/vnd.fdsn.seed",
 	".davmount"		: "application/davmount+xml",
 	".dcr"			: "application/x-director",
-	".dcm"			: "application/dicom",
+	".dcm"			: "application/octet-stream",
 	".dcurl"		: "text/vnd.curl.dcurl",
 	".dd2"			: "application/vnd.oma.dd2+xml",
 	".ddd"			: "application/vnd.fujixerox.ddd",

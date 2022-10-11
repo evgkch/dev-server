@@ -6,11 +6,12 @@ import colors from './colors.js';
 
 const PATH_TO_MIME_TYPES = path.join(config.__dirname, 'files/mime-types.json');
 const MimeTypes = JSON.parse(fs.readFileSync(PATH_TO_MIME_TYPES, { encoding: 'utf-8' }));
+const encoding_exceptions = ['GB18030', 'CP1252'];
 
 // Load file by path
 export async function loadFile(filePath) {
     const fileInfo = await getFileInfo(filePath);
-    if (fileInfo && fileInfo.encoding !== 'GB18030')
+    if (fileInfo && encoding_exceptions.every(e => e !== fileInfo.encoding))
         return fs.promises.readFile(filePath, fileInfo);
     else
         return fs.promises.readFile(filePath);
@@ -24,11 +25,14 @@ export function getContentType(filePath) {
 
 export async function sendFile(filePath, stream) {
     try {
+        const file = await loadFile(filePath);
         stream.respondWithFile(filePath, {
             'accept-ranges': 'bytes',
             'content-length': Buffer.byteLength(file),
             'content-type': getContentType(filePath),
             ':status': 200
+        }, {
+            length: Buffer.byteLength(file)
         });
     } catch(e) {
         console.log(colors.Message, `Not found ${filePath}`);
